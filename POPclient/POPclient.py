@@ -11,50 +11,39 @@ import sys,email
 from ssl import wrap_socket
 from os import linesep
 import time,email
-
+import base64
 POP3_PORT_SSL = 995
 ENCODING = 'utf-8'
 
 TIMEOUT = 1
-f= open("guru99.txt","w+")
+
 CRLF = "\r\n"
 
-def extract_mime_part_matching(stream, mimetype):
-    """Return the first element in a multipart MIME message on stream
-    matching mimetype."""
+def getAttachment(contents):
+    Hearder =''
+    if 'filename=' in contents:
+        
+        start = contents.find('filename="') 
+        end = contents.find('"', start+10)
+        Hearder=contents[start+10:end]
+        f=open(Hearder,'wb')
+        Hearder = 'Attachment: '+Hearder
+        start = contents.find('\r\n\r\n',start+3) 
+        end = contents.find('\n.', start)
+        Hearder2=contents[start:end-1]
+        dados=base64.b64decode(Hearder2+"==")
+        f.write(dados)
+        f.close()
+    return Hearder
 
-    msg = mimetools.Message(stream)
-    msgtype = msg.gettype()
-    params = msg.getplist()
 
-    data = StringIO.StringIO()
-    if msgtype[:10] == "multipart/":
-
-        file = multifile.MultiFile(stream)
-        file.push(msg.getparam("boundary"))
-        while file.next():
-            submsg = mimetools.Message(file)
-            try:
-                data = StringIO.StringIO()
-                mimetools.decode(file, data, submsg.getencoding())
-            except ValueError:
-                continue
-            if submsg.gettype() == mimetype:
-                break
-        file.pop()
-    return data.getvalue()
-      
-
-def send_data(sock, data,profile=True):
+def send_data(sock, data):
     """Sends data to a given socket."""
+    print(data)
     sock.send((data).encode(ENCODING))
-
-
-    if profile:
-        sys.stderr.write(data + linesep)
-
-    buff = sock.recv()
-    print (buff)
+        
+    buff = sock.recv(4096)
+    print(buff)
     return buff
 
 def hearders(menssagem,self,numero):
@@ -69,25 +58,19 @@ def hearders(menssagem,self,numero):
     self.listWidget_Emails.addItem(Hearder)
 
 
-def send_dataHeader(sock, data,self,numero,profile=True):
+def send_dataHeader(sock, data,self,numero):
     """Sends data to a given socket."""
     sock.send((data).encode(ENCODING))
-    
-    if profile:
-        sys.stderr.write(data + linesep)
+     
     menssagem = ''
-    buff = sock.recv()
-    data2 = buff
-    menssagem+=(str(buff, 'utf-8'))
+   
     while True:
-          buff = sock.recv()
-         
-         
-          buff=(str(buff, 'utf-8'))
-          menssagem+=buff
-          
-          if buff.endswith('.\r\n'):
-            break
+            buff = sock.recv(4096)
+            
+            buff=(str(buff, 'utf-8'))
+            menssagem+=buff
+            if '\n.\r' in menssagem:
+             break
    
     hearders(menssagem,self,numero)
 
@@ -95,7 +78,7 @@ def send_dataHeader(sock, data,self,numero,profile=True):
     
         
  
-def num_Mens(sock,profile=True):
+def num_Mens(sock):
     menssagem=send_data(sock, 'STAT'+CRLF)
     menssagem=(str(menssagem, 'utf-8'))
     start = menssagem.find(' ') 
@@ -103,16 +86,17 @@ def num_Mens(sock,profile=True):
     menssagem=menssagem[start+1:end]
     return menssagem
 
-def listagem(sock,num,self,profile=True):
+def listagem(sock,num,self):
     
     for x in range(1,num+1):
         send_dataHeader(sock, 'RETR '+str(x)+CRLF,self,x)
        
 def email_Reader(email,QDialog):
     menssagem=email
+    Hearder=getAttachment(menssagem)
     start = menssagem.find('\nFrom:') 
     end = menssagem.find('\n', start+1)
-    Hearder=menssagem[start:end]
+    Hearder+=menssagem[start:end]
     start = menssagem.find('\nDate:') 
     end = menssagem.find('\n', start+1)
     Hearder+=menssagem[start:end]
@@ -122,32 +106,57 @@ def email_Reader(email,QDialog):
     start = menssagem.find('\nSubject:') 
     end = menssagem.find('\n', start+1)
     Hearder+=menssagem[start:end]
-    Hearder+=' |No horario|'   
-    start = menssagem.find('(version=TLS1 cipher=ECDHE-RSA-AES128-SHA bits=128/128)') 
-    start = menssagem.find('  ',start) 
-    end = menssagem.find('\n', start+1)
-    Hearder+=menssagem[start+6:end]
+    start = menssagem.find('Received:') 
+    start = menssagem.find('\n',start)
+    end = menssagem.find(')', start)
+    Hearder+=('Received: '+menssagem[start+14:end+1])
+    
     QDialog.textBrowser_email.setText(Hearder)
 
+  
 
-
-def  send_dataEmail(sock,data,QDialog,profile=True):
+def  send_dataEmail(sock,data,QDialog):
     sock.send((data).encode(ENCODING))
     
-    if profile:
-        sys.stderr.write(data + linesep)
     menssagem = ''
     while True:
-        try:
+       
             buff = sock.recv(4096)
+            
             buff=(str(buff, 'utf-8'))
             menssagem+=buff
-        except socket.timeout:
-            break
-    f.write(menssagem)
+            if '\n.\r' in menssagem:
+             break
+        
+    
     email_Reader(menssagem,QDialog)   
 
+def listEmails(sock,self):
+    sock.send(('LIST'+CRLF).encode(ENCODING))
+       
+    menssagem = ''
+   
+    while True:
+            buff = sock.recv(4096)
+            
+            buff=(str(buff, 'utf-8'))
+            menssagem+=buff
+            if '\n.\r' in menssagem:
+             break
+   
+    listHeaders(sock,menssagem,self)
 
+def listHeaders(sock,menssagem,self):
+    start = menssagem.find(' ') 
+    end = menssagem.find(' ', start+1)
+    tamanho=int(menssagem[start+1:end])
+    menssagem = menssagem[menssagem.find("\r\n")+1:]
+    for x in range (0,tamanho):
+        numeros = int(menssagem[:menssagem.find(' ')])
+        send_dataHeader(sock, 'TOP '+str(numeros)+' 0'+CRLF,self,numeros)
+        menssagem = menssagem[menssagem.find(' '):]
+        menssagem = menssagem[menssagem.find('\n'):]
+    
 
 
 class Client():
@@ -158,8 +167,7 @@ class Client():
          self.ssl_sock.settimeout(TIMEOUT)
          self.ssl_sock.connect(('pop.gmail.com',POP3_PORT_SSL))
          data = self.ssl_sock.recv(4096)
-         print (data)
-
+         
 
  
     def login(self):
@@ -168,13 +176,29 @@ class Client():
          #if(data.startswith(b'+OK')==True):           
               
     def emails(self,QDialog):
-        num_emails=int(num_Mens(self.ssl_sock))
-        print(num_emails)
-        listagem(self.ssl_sock,num_emails,self.QDialog)
-        send_data(self.ssl_sock, 'RSET'+CRLF)
-
+        self.numero_Mens =num_Mens(self.ssl_sock)
+        QDialog.textBrowser_NEmails.setText(self.numero_Mens)
+        listEmails(self.ssl_sock,self.QDialog)
+        #listagem(self.ssl_sock,num_emails,self.QDialog)
+        
+ 
     def identificarMensagem(self,texto):
-     send_dataEmail(self.ssl_sock, 'RETR '+texto+CRLF,self.QDialog)
+        send_dataEmail(self.ssl_sock, 'RETR '+texto+CRLF,self.QDialog)
+     
+   
+
+    def deletarEmail(self,texto):
+       end = texto.find('\n')
+       texto=texto[:end]
+       while True:
+           if b'OK' in send_data(self.ssl_sock, 'NOOP'+CRLF):
+            time.sleep(0.1)
+            send_data(self.ssl_sock, 'DELE '+texto+CRLF)
+            tempNumero= int(self.numero_Mens)
+            tempNumero-= 1
+            self.numero_Mens= str(tempNumero)
+            self.QDialog.textBrowser_NEmails.setText(self.numero_Mens)
+            break
 
 
 
