@@ -15,7 +15,7 @@ import base64
 POP3_PORT_SSL = 995
 ENCODING = 'utf-8'
 
-TIMEOUT = 1
+TIMEOUT = 2
 
 CRLF = "\r\n"
 
@@ -39,9 +39,9 @@ def getAttachment(contents):
 
 def send_data(sock, data):
     """Sends data to a given socket."""
-    print(data)
+    
     sock.send((data).encode(ENCODING))
-        
+       
     buff = sock.recv(4096)
     print(buff)
     return buff
@@ -74,9 +74,8 @@ def send_dataHeader(sock, data,self,numero):
    
     hearders(menssagem,self,numero)
 
-
-    
-        
+   
+       
  
 def num_Mens(sock):
     menssagem=send_data(sock, 'STAT'+CRLF)
@@ -86,10 +85,6 @@ def num_Mens(sock):
     menssagem=menssagem[start+1:end]
     return menssagem
 
-def listagem(sock,num,self):
-    
-    for x in range(1,num+1):
-        send_dataHeader(sock, 'RETR '+str(x)+CRLF,self,x)
        
 def email_Reader(email,QDialog):
     menssagem=email
@@ -165,25 +160,27 @@ class Client():
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s: 
          self.ssl_sock = wrap_socket(s)
          self.ssl_sock.settimeout(TIMEOUT)
-         self.ssl_sock.connect(('pop.gmail.com',POP3_PORT_SSL))
-         data = self.ssl_sock.recv(4096)
-         
-
- 
-    def login(self):
-         send_data(self.ssl_sock, 'USER lwoas6432@gmail.com'+CRLF)
-         send_data(self.ssl_sock, 'PASS azxsdc32'+CRLF)
-         #if(data.startswith(b'+OK')==True):           
+    
+                
+    def login(self,email,porta,login,password):
+         self.ssl_sock.connect((email,int(porta)))
+         data = self.ssl_sock.recv()
+         print(data)
+         send_data(self.ssl_sock, 'USER '+login+CRLF)
+         send_data(self.ssl_sock, 'PASS '+password+CRLF)
+            
+            
               
     def emails(self,QDialog):
         self.numero_Mens =num_Mens(self.ssl_sock)
         QDialog.textBrowser_NEmails.setText(self.numero_Mens)
         listEmails(self.ssl_sock,self.QDialog)
-        #listagem(self.ssl_sock,num_emails,self.QDialog)
+      
         
  
     def identificarMensagem(self,texto):
         send_dataEmail(self.ssl_sock, 'RETR '+texto+CRLF,self.QDialog)
+        
      
    
 
@@ -192,7 +189,7 @@ class Client():
        texto=texto[:end]
        while True:
            if b'OK' in send_data(self.ssl_sock, 'NOOP'+CRLF):
-            time.sleep(0.1)
+            time.sleep(2)
             send_data(self.ssl_sock, 'DELE '+texto+CRLF)
             tempNumero= int(self.numero_Mens)
             tempNumero-= 1

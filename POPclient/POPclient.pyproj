@@ -22,9 +22,6 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="Emailreader.py" />
-    <Compile Include="Main.py">
-      <SubType>Code</SubType>
-    </Compile>
     <Compile Include="module1.py">
       <SubType>Code</SubType>
     </Compile>
