@@ -34,7 +34,7 @@ class Ui_Email_Dialog(object):
         self.pushButton_Voltar = QtWidgets.QPushButton(Email_Dialog)
         self.pushButton_Voltar.setGeometry(QtCore.QRect(660, 30, 75, 23))
         self.pushButton_Voltar.setObjectName("pushButton_Entrar_Voltar")
-        self.pushButton_Voltar.clicked.connect(self.button_pressed)
+        self.pushButton_Voltar.clicked.connect(self.button_pressed_Voltar)
         self.pushButton_Voltar.hide()
         self.pushButton_Sair = QtWidgets.QPushButton(Email_Dialog)
         self.pushButton_Sair.setGeometry(QtCore.QRect(360, 30, 75, 23))
@@ -61,6 +61,10 @@ class Ui_Email_Dialog(object):
         self.pushButton_Entrar = QtWidgets.QPushButton(Email_Dialog)
         self.pushButton_Entrar.setGeometry(QtCore.QRect(100, 300, 75, 23))
         self.pushButton_Entrar.setObjectName("pushButton")
+        self.pushButton_Reset = QtWidgets.QPushButton(Email_Dialog);
+        self.pushButton_Reset.setObjectName("pushButton_Reset")
+        self.pushButton_Reset.setGeometry(QtCore.QRect(390, 630, 131, 23))
+        self.pushButton_Reset.hide()
         self.widget = QtWidgets.QWidget(Email_Dialog)
         self.widget.setGeometry(QtCore.QRect(91, 10, 311, 271))
         self.widget.setObjectName("widget")
@@ -94,8 +98,8 @@ class Ui_Email_Dialog(object):
         self.lineEdit_Senha.setEchoMode(QtWidgets.QLineEdit.Password)
         self.pushButton_DeletarEmail.clicked.connect(self.button_pressed_deletar)
         self.pushButton_Entrar.clicked.connect(self.button_pressed_Entrar)
+        self.pushButton_Reset.clicked.connect(self.button_pressed_Reset)
         self.QMessageBox_Error_Login = QtWidgets.QMessageBox(Email_Dialog)
-        self.QMessageBox_Error_Login.setIcon(QtWidgets.QMessageBox.Information)
         self.QMessageBox_Error_Login.setText("Algum dos campos esta incorreto")
         self.QMessageBox_Error_Login.setWindowTitle("Login erro")
         QtCore.QMetaObject.connectSlotsByName(Email_Dialog)
@@ -103,6 +107,9 @@ class Ui_Email_Dialog(object):
          
     def button_pressed_sair(self):
         self.changeLogin()
+        
+    def button_pressed_Reset(self):
+        PopClient.resetEmail()
 
     def button_pressed_deletar(self):
       PopClient.deletarEmail(self.listWidget_Emails.currentItem().text())
@@ -112,16 +119,25 @@ class Ui_Email_Dialog(object):
       self.pushButton_Voltar.hide()
      
     def button_pressed_Entrar(self):
+        
         try:
          
-         PopClient.login(self.lineEdit_EmailServer.text(),self.lineEdit_Port.text(),self.lineEdit_Login.text(),self.lineEdit_Senha.text())
-         PopClient.emails(ui)
-         self.pushButton_Entrar.hide()
-         self.changeWindow()                       
+         data=PopClient.login(self.lineEdit_EmailServer.text(),self.lineEdit_Port.text(),self.lineEdit_Login.text(),self.lineEdit_Senha.text())
+         if(data==1):
+             PopClient.emails(ui)
+             self.pushButton_Entrar.hide()
+             self.changeWindow()
+         else:
+             return -1
         except:
           self.QMessageBox_Error_Login.show()
           self.lineEdit_Senha.clear()
+          
+          
+          
         
+        
+         
 
     def changeWindow(self):
          self.pushButton_Sair.show()
@@ -140,7 +156,7 @@ class Ui_Email_Dialog(object):
          self.listWidget_Emails.show()
          self.pushButton_DeletarEmail.show()
          self.lineEdit_Senha.clear()
-         
+         self.pushButton_Reset.show()
 
     def changeLogin(self):
          self.label_Sever.show()
@@ -159,11 +175,13 @@ class Ui_Email_Dialog(object):
          self.pushButton_DeletarEmail.hide()
          self.pushButton_Sair.hide()
          self.pushButton_Entrar.show()
+         self.pushButton_Reset.hide()
 
-    def button_pressed(self):
+    def button_pressed_Voltar(self):
       self.textBrowser_email.hide()
       self.listWidget_Emails.show()
       self.pushButton_Voltar.hide()
+      PopClient.quit()
     
     def PrintClick(self):
       PopClient.identificarMensagem(self.listWidget_Emails.currentItem().text())
@@ -187,7 +205,7 @@ class Ui_Email_Dialog(object):
         self.label_port.setText(_translate("Email_Dialog", "Porta"))
         self.label_Login.setText(_translate("Email_Dialog", "Login"))
         self.label_Senha.setText(_translate("Email_Dialog", "Senha"))
-        
+        self.pushButton_Reset.setText(_translate("Email_Dialog", "Reset  Emails Deletados"))
     
 
         

@@ -7,10 +7,9 @@
 # WARNING! All changes made in this file will be lost!
 from PyQt5 import QtCore, QtGui, QtWidgets
 import socket
-import sys,email
+import sys
 from ssl import wrap_socket
-from os import linesep
-import time,email
+import time
 import base64
 POP3_PORT_SSL = 995
 ENCODING = 'utf-8'
@@ -107,8 +106,21 @@ def email_Reader(email,QDialog):
     Hearder+=('Received: '+menssagem[start+14:end+1])
     
     QDialog.textBrowser_email.setText(Hearder)
+def APOP (sock,login):
+    send_data(sock,login)
 
-  
+def UIDL(sock,data):
+    sock.send((data).encode(ENCODING))
+    
+    menssagem = ''
+    while True:
+       
+            buff = sock.recv(4096)
+            
+            buff=(str(buff, 'utf-8'))
+            menssagem+=buff
+            if '\n.\r' in menssagem:
+             break
 
 def  send_dataEmail(sock,data,QDialog):
     sock.send((data).encode(ENCODING))
@@ -167,22 +179,26 @@ class Client():
          data = self.ssl_sock.recv()
          print(data)
          send_data(self.ssl_sock, 'USER '+login+CRLF)
-         send_data(self.ssl_sock, 'PASS '+password+CRLF)
+         data=send_data(self.ssl_sock, 'PASS '+password+CRLF)
+         if(data.startswith(b'+OK')):
             
-            
-              
+             return 1 
+
     def emails(self,QDialog):
         self.numero_Mens =num_Mens(self.ssl_sock)
         QDialog.textBrowser_NEmails.setText(self.numero_Mens)
         listEmails(self.ssl_sock,self.QDialog)
       
+    def resetEmail(self):
+        send_data(self.ssl_sock, 'RSET'+CRLF)
         
+
  
     def identificarMensagem(self,texto):
         send_dataEmail(self.ssl_sock, 'RETR '+texto+CRLF,self.QDialog)
         
-     
-   
+    def quit(self):
+      send_data(self.ssl_sock, 'QUIT'+CRLF)
 
     def deletarEmail(self,texto):
        end = texto.find('\n')
